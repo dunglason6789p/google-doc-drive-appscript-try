@@ -23,11 +23,11 @@ const FILENAME_PERSONEL_RESPONSE = 'Response list.xlsx';
 const FILENAME_REVIEWREPORT_TEMPLATE = 'Personnel Evaluation Result_template.xlsx';
 const FILENAME_COMPANY_MEMBERS = 'List member.xlsx';
 
-/**@param {DriveFileInfo} folder*/
-async function readMainFolder(folder) {
-  const mainFolderId = folder.id;
+/**@param {DriveFileInfo} mainFolder*/
+async function readMainFolder(mainFolder) {
+  const mainFolderId = mainFolder.id;
   const inputFolder = (await findFiles(`"${mainFolderId}" in parents and name = "${INPUT_FOLDER_NAME}"`))[0];
-  const outputFolder = (await findFiles(`"${mainFolderId}" in parents and name = "${OUTPUT_FOLDER_NAME}"`))[0];
+  const outputFolderFound = (await findFiles(`"${mainFolderId}" in parents and name = "${OUTPUT_FOLDER_NAME}"`))[0];
 
   const filePersonelResponse
     = (await findFiles(`"${inputFolder.id}" in parents and name = "${FILENAME_PERSONEL_RESPONSE}"`))[0];
@@ -37,6 +37,46 @@ async function readMainFolder(folder) {
     = (await findFiles(`"${inputFolder.id}" in parents and name = "${FILENAME_COMPANY_MEMBERS}"`))[0];
 
   const noop = 0;
+
+  // Reset output folder.
+  if (outputFolderFound) {
+    await deleteFileOrFolder(outputFolderFound.id);
+  }
+  const outputFolder = await createFolder(OUTPUT_FOLDER_NAME, mainFolderId);
+
+}
+
+function createFolder(folderName, parentFolderId) {
+  return new Promise((resolve, reject) => {
+    const fileMetadata = {
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: [parentFolderId],
+    };
+    gapi.client.drive.files.create({
+      resource: fileMetadata,
+      //fields: 'id'
+    }, (err, file) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(file);
+      }
+    });
+  });
+}
+
+function deleteFileOrFolder(fileOrFolderId) {
+  return new Promise((resolve, reject) => {
+    gapi.client.drive.files.delete({
+      fileId: fileOrFolderId
+    }).then(function(response) {
+      resolve(response.result.files);
+    },
+    function(err) {
+      reject(err);
+    });
+  });
 }
 
 /**@return {Promise<DriveFileInfo[]>}*/
