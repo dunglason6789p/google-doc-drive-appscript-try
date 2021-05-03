@@ -1,0 +1,17 @@
+{
+  "name": "google-doc-drive-appscript-try",
+  "version": "1.0.0",
+  "description": "",
+  "main": "my-secrets.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "googleapis": "^73.0.0"
+  }
+}

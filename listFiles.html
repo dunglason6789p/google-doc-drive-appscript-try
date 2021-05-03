@@ -1,0 +1,39 @@
+<html lang="en">
+<head>
+  <title></title>
+  <script src="https://apis.google.com/js/api.js"></script>
+  <script src="my-secrets.js"></script>
+  <script src="initGoogleApi.js"></script>
+
+  <script>
+/**
+ * https://developers.google.com/explorer-help/guides/code_samples#javascript
+ */
+
+// Array of API discovery doc URLs for APIs used by the quickstart
+const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
+
+// Authorization scopes required by the API; multiple scopes can be included, separated by spaces.
+const SCOPE = "https://www.googleapis.com/auth/drive";
+
+function test() {
+  initGoogleApi({
+    discoveryDocs: DISCOVERY_DOCS,
+    scope: SCOPE,
+  }, () => {
+    return gapi.client.drive.files.list({
+      "corpora": "user"
+    }).then(response => {
+      // Handle the results here (response.result has the parsed body).
+      console.log(response);
+    }, err => console.error(err));
+  }, err => console.error(err));
+}
+  </script>
+</head>
+<body>
+
+<button onclick="test();">Test list Drive files</button>
+
+</body>
+</html>

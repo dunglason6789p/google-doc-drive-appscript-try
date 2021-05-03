@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "amd",
+    "moduleResolution": "node",
+    "outDir": "dist",
+    "!!outFile": "dist/app.js",
+    "target": "es5"
+  },
+  "include": [
+    "ts/*.ts"
+  ],
+  "exclude": [
+    "*.d.ts"
+  ]
+}
