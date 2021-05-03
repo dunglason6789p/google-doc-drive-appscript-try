@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <title>Google Picker Example</title>
+
+  <!-- The Google API Loader script. -->
+  <script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
+  <script src="my-secrets.js"></script>
+  <script src="initGoogleApi.js"></script>
+  <script type="text/javascript">
+
+const appId = SECRET.PROJECT_NUMBER;
+const SCOPE = 'https://www.googleapis.com/auth/drive';
+const DISCOVERY_DOCS = ["https://sheets.googleapis.com/$discovery/rest?version=v4"];
+const MAIN_FOLDER_NAME = 'Review tool';
+
+// A simple callback implementation.
+function pickerCallback(data) {
+  if (data.action === google.picker.Action.PICKED) {
+    const selectedFile = data.docs[0];
+    if (selectedFile.name !== MAIN_FOLDER_NAME) {
+      alert(`You must select folder ${MAIN_FOLDER_NAME}! (wrong selected folder: ${selectedFile.name})`);
+    } else {
+      alert(`Ok! (folder ${MAIN_FOLDER_NAME} selected)`);
+    }
+  }
+}
+
+function test() {
+  initGoogleApi({
+    discoveryDocs: DISCOVERY_DOCS,
+    scope: SCOPE,
+  }, initResponse => {
+    const oauthToken = initResponse.authInstance.currentUser.get().getAuthResponse(true).access_token;
+    gapi.load('picker', {callback: () => {
+      // const view = new google.picker.View(google.picker.ViewId.DOCS);
+      const view = new google.picker.DocsView(google.picker.ViewId.DOCS);
+      view.setIncludeFolders(true);
+      view.setSelectFolderEnabled(true);
+      view.setParent('root');
+      //view.setMimeTypes("image/png,image/jpeg,image/jpg");
+
+      const picker = new google.picker.PickerBuilder()
+        //.enableFeature(google.picker.Feature.NAV_HIDDEN)
+        .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+        .setAppId(appId)
+        .setOAuthToken(oauthToken)
+        .addView(view)
+        .addView(new google.picker.DocsUploadView())
+        //.setDeveloperKey(developerKey)
+        .setCallback(pickerCallback)
+        .build();
+      picker.setVisible(true);
+    }});
+  }, err => console.error(err));
+}
+
+  </script>
+</head>
+<body>
+  <div>
+    <button onclick="test();">Test</button>
+  </div>
+  <div id="result"></div>
+</body>
+</html>
