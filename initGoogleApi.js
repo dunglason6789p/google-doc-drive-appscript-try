@@ -19,9 +19,15 @@ try {
 const CLIENT_ID = SECRET.CLIENT_ID;
 const API_KEY = SECRET.API_KEY;
 
+/**@typedef {{
+  signIn: function():void,
+  isSignedIn: any,
+  currentUser: {get: function(): {getAuthResponse: function(boolean): {access_token: string}}}
+}} AuthInstance*/
+
 /** Init client.
  * @param {{discoveryDocs: string[], scope: string}} initData
- * @param {any} onSuccess
+ * @param {function({authInstance:AuthInstance}):void} onSuccess
  * @param {function(Error):void} onError*/
 function initGoogleApi(initData, onSuccess, onError) {
   gapi.load('client:auth2', () => {
@@ -32,20 +38,21 @@ function initGoogleApi(initData, onSuccess, onError) {
       scope: initData.scope,
     }).then(function () {
       // Handle the initial sign-in state.
-      const isSignedIn = gapi.auth2.getAuthInstance().isSignedIn.get();
+      const authInstance = gapi.auth2.getAuthInstance();
+      const isSignedIn = authInstance.isSignedIn.get();
       if (isSignedIn) {
-        onSuccess();
+        onSuccess({authInstance});
       } else {
         let isOnSuccessExecuted = false;
-        gapi.auth2.getAuthInstance().isSignedIn.listen(isUserSignedIn => {
+        authInstance.isSignedIn.listen(isUserSignedIn => {
           if (isUserSignedIn) {
             if (!isOnSuccessExecuted) {
               isOnSuccessExecuted = true;
-              onSuccess();
+              onSuccess({authInstance});
             }
           }
         });
-        gapi.auth2.getAuthInstance().signIn();
+        authInstance.signIn();
         //onError(new Error('[NTS:ERROR] Error: User not signed in!'));
       }
     }, function(error) {
