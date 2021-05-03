@@ -18,49 +18,63 @@ const SCOPE = "https://www.googleapis.com/auth/drive";
 
 /**@typedef {{id:string,name:string,mimeType:string}} DriveFileInfo*/
 
-function onclickFolderLink(folderId) {
-  browseFolder(folderId, fileList => {
-    console.log(fileList);
-    showFileList(fileList);
-  }, error => {});
+function getElement_fileList() {
+  return document.querySelector('#elmId_fileList');
+}
+
+function onclickFolderLink(folder) {
+  browseFolderAndShowFileList(folder);
 }
 
 function showLoading() {
-  document.querySelector('#elmId_fileList').innerHTML = `Loading...`;
+  getElement_fileList().innerHTML = `Loading...`;
 }
 
 /**@param {DriveFileInfo[]} fileList*/
 function showFileList(fileList) {
-  let sb = '';
+  getElement_fileList().innerHTML = '';
   for (const file of fileList) {
     try {
+      let div = undefined;
       if (file.mimeType === 'application/vnd.google-apps.folder') {
-        sb += `<div onclick="onclickFolderLink('${file.id}');">`
-          +`<b>[FOLDER]</b>${file.name}</div>`;
+        div = document.createElement('div');
+        div.onclick = () => onclickFolderLink(file);
+        div.innerHTML = `<b>[FOLDER]</b>${file.name}</div>`;
       } else {
-        sb += '<div>'
-          +`${file.name}</div>`;
+        div = document.createElement('div');
+        div.innerHTML = `${file.name}</div>`;
       }
+      getElement_fileList().appendChild(div);
     } catch (e) {
       console.error(e);
     }
   }
-  document.querySelector('#elmId_fileList').innerHTML = sb;
 }
 
+let previousFolder = undefined;
+let currentFolder = undefined;
+
 /**
- * @param {string|null} folderId
+ * @param {DriveFileInfo|null} folder
  * @param {function(DriveFileInfo[]):void} onSuccess
  * @param {function(Error):void} onError
  * */
-function browseFolder(folderId, onSuccess, onError) {
+function browseFolder(folder, onSuccess, onError) {
+  previousFolder = currentFolder;
+  currentFolder = folder;
   showLoading();
   return gapi.client.drive.files.list({
     corpora: "user",
-    q: folderId ? `"${folderId}" in parents` : undefined
+    q: (folder && folder.id) ? `"${folder.id}" in parents` : undefined
   }).then(response => {
     onSuccess(response.result.files);
   }, err => onError(err));
+}
+
+/**@type {DriveFileInfo|null}*/
+
+function browseGrandParentFolder() {
+  browseFolderAndShowFileList(previousFolder);
 }
 
 function test() {
@@ -69,19 +83,24 @@ function test() {
     discoveryDocs: DISCOVERY_DOCS,
     scope: SCOPE,
   }, () => {
-    browseFolder(null, fileList => {
-      console.log(fileList);
-      showFileList(fileList);
-    }, error => {
-      console.error(error);
-    });
+    browseFolderAndShowFileList(null);
   }, err => console.error(err));
+}
+
+function browseFolderAndShowFileList(folder) {
+  browseFolder(folder, fileList => {
+    console.log(fileList);
+    showFileList(fileList);
+  }, error => {
+    console.error(error);
+  });
 }
   </script>
 </head>
 <body>
 
 <button id="elmId_btnStartTest" onclick="test();">Test list Drive files</button>
+<div id="elmId_parentFolder" onclick="browseGrandParentFolder();"><b>[PARENT FOLDER]..</b></div>
 <div id="elmId_fileList"></div>
 
 </body>
