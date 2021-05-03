@@ -23,6 +23,25 @@ const FILENAME_PERSONEL_RESPONSE = 'Response list';
 const FILENAME_REVIEWREPORT_TEMPLATE = 'Personnel Evaluation Result_template';
 const FILENAME_COMPANY_MEMBERS = 'List member';
 
+function readSSFile_COMPANY_MEMBERS(fileCompanyMember) {
+  return new Promise((resolve, reject) => {
+    gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: fileCompanyMember.id,
+      range: 'Sheet1!G2:G200',
+    }).then(response => {
+      const range = response.result;
+      if (range.values.length > 0) {
+        for (let i = 0; i < range.values.length; i++) {
+          var row = range.values[i];
+        }
+      } else {
+      }
+    }, errorResponse => {
+      reject(new Error(errorResponse.result.error.message));
+    });
+  });
+}
+
 /**@param {DriveFileInfo} mainFolder*/
 async function readMainFolder(mainFolder) {
   const mainFolderId = mainFolder.id;
@@ -38,12 +57,7 @@ async function readMainFolder(mainFolder) {
 
   const noop = 0;
 
-  // Reset output folder.
-  if (outputFolderFound) {
-    await deleteFileOrFolder(outputFolderFound.id);
-  }
-  const outputFolder = await createFolder(OUTPUT_FOLDER_NAME, mainFolderId);
-
+  readSSFile_COMPANY_MEMBERS(fileCompanyMember);
 }
 
 function createFolder(folderName, parentFolderId) {
