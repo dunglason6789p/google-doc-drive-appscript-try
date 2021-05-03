@@ -1,0 +1,88 @@
+<html lang="en">
+<head>
+  <title></title>
+  <script src="https://apis.google.com/js/api.js"></script>
+  <script src="my-secrets.js"></script>
+  <script src="initGoogleApi.js"></script>
+
+  <script>
+/**
+ * https://developers.google.com/explorer-help/guides/code_samples#javascript
+ */
+
+// Array of API discovery doc URLs for APIs used by the quickstart
+const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
+
+// Authorization scopes required by the API; multiple scopes can be included, separated by spaces.
+const SCOPE = "https://www.googleapis.com/auth/drive";
+
+/**@typedef {{id:string,name:string,mimeType:string}} DriveFileInfo*/
+
+function onclickFolderLink(folderId) {
+  browseFolder(folderId, fileList => {
+    console.log(fileList);
+    showFileList(fileList);
+  }, error => {});
+}
+
+function showLoading() {
+  document.querySelector('#elmId_fileList').innerHTML = `Loading...`;
+}
+
+/**@param {DriveFileInfo[]} fileList*/
+function showFileList(fileList) {
+  let sb = '';
+  for (const file of fileList) {
+    try {
+      if (file.mimeType === 'application/vnd.google-apps.folder') {
+        sb += `<div onclick="onclickFolderLink('${file.id}');">`
+          +`<b>[FOLDER]</b>${file.name}</div>`;
+      } else {
+        sb += '<div>'
+          +`${file.name}</div>`;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  document.querySelector('#elmId_fileList').innerHTML = sb;
+}
+
+/**
+ * @param {string|null} folderId
+ * @param {function(DriveFileInfo[]):void} onSuccess
+ * @param {function(Error):void} onError
+ * */
+function browseFolder(folderId, onSuccess, onError) {
+  showLoading();
+  return gapi.client.drive.files.list({
+    corpora: "user",
+    q: folderId ? `"${folderId}" in parents` : undefined
+  }).then(response => {
+    onSuccess(response.result.files);
+  }, err => onError(err));
+}
+
+function test() {
+  document.querySelector('#elmId_btnStartTest').disabled = true;
+  initGoogleApi({
+    discoveryDocs: DISCOVERY_DOCS,
+    scope: SCOPE,
+  }, () => {
+    browseFolder(null, fileList => {
+      console.log(fileList);
+      showFileList(fileList);
+    }, error => {
+      console.error(error);
+    });
+  }, err => console.error(err));
+}
+  </script>
+</head>
+<body>
+
+<button id="elmId_btnStartTest" onclick="test();">Test list Drive files</button>
+<div id="elmId_fileList"></div>
+
+</body>
+</html>
