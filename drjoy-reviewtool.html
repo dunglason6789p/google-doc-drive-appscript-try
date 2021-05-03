@@ -12,17 +12,56 @@
 
 const appId = SECRET.PROJECT_NUMBER;
 const SCOPE = 'https://www.googleapis.com/auth/drive';
-const DISCOVERY_DOCS = ["https://sheets.googleapis.com/$discovery/rest?version=v4"];
+const DISCOVERY_DOCS = [
+  "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
+  "https://sheets.googleapis.com/$discovery/rest?version=v4"
+];
 const MAIN_FOLDER_NAME = 'Review tool';
+const INPUT_FOLDER_NAME = 'INPUT';
+const OUTPUT_FOLDER_NAME = 'OUTPUT';
+const FILENAME_PERSONEL_RESPONSE = 'Response list.xlsx';
+const FILENAME_REVIEWREPORT_TEMPLATE = 'Personnel Evaluation Result_template.xlsx';
+const FILENAME_COMPANY_MEMBERS = 'List member.xlsx';
+
+/**@param {DriveFileInfo} folder*/
+async function readMainFolder(folder) {
+  const mainFolderId = folder.id;
+  const inputFolder = (await findFiles(`"${mainFolderId}" in parents and name = "${INPUT_FOLDER_NAME}"`))[0];
+  const outputFolder = (await findFiles(`"${mainFolderId}" in parents and name = "${OUTPUT_FOLDER_NAME}"`))[0];
+
+  const filePersonelResponse
+    = (await findFiles(`"${inputFolder.id}" in parents and name = "${FILENAME_PERSONEL_RESPONSE}"`))[0];
+  const fileReviewReportTemplate
+    = (await findFiles(`"${inputFolder.id}" in parents and name = "${FILENAME_REVIEWREPORT_TEMPLATE}"`))[0];
+  const fileCompanyMember
+    = (await findFiles(`"${inputFolder.id}" in parents and name = "${FILENAME_COMPANY_MEMBERS}"`))[0];
+
+  const noop = 0;
+}
+
+/**@return {Promise<DriveFileInfo[]>}*/
+function findFiles(query) {
+  return new Promise((resolve, reject) => {
+    return gapi.client.drive.files.list({
+      corpora: "user",
+      q: query,
+    }).then(response => {
+      resolve(response.result.files);
+    }, err => {
+      reject(err);
+    });
+  });
+}
 
 // A simple callback implementation.
 function pickerCallback(data) {
   if (data.action === google.picker.Action.PICKED) {
-    const selectedFile = data.docs[0];
-    if (selectedFile.name !== MAIN_FOLDER_NAME) {
-      alert(`You must select folder ${MAIN_FOLDER_NAME}! (wrong selected folder: ${selectedFile.name})`);
+    const selectedFileOrFolder = data.docs[0];
+    if (selectedFileOrFolder.name !== MAIN_FOLDER_NAME) {
+      alert(`You must select folder ${MAIN_FOLDER_NAME}! (wrong selected folder: ${selectedFileOrFolder.name})`);
     } else {
       alert(`Ok! (folder ${MAIN_FOLDER_NAME} selected)`);
+      readMainFolder(selectedFileOrFolder);
     }
   }
 }

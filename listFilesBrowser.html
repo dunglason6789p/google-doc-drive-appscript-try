@@ -16,7 +16,12 @@ const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/r
 // Authorization scopes required by the API; multiple scopes can be included, separated by spaces.
 const SCOPE = "https://www.googleapis.com/auth/drive";
 
-/**@typedef {{id:string,name:string,mimeType:string}} DriveFileInfo*/
+/**@typedef {{
+  id:string,name: string,
+  mimeType: string,
+  name: string,
+  parents: string[],
+}} DriveFileInfo*/
 
 function getElement_fileList() {
   return document.querySelector('#elmId_fileList');
