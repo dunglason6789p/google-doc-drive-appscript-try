@@ -23,6 +23,41 @@ const FILENAME_PERSONEL_RESPONSE = 'Response list';
 const FILENAME_REVIEWREPORT_TEMPLATE = 'Personnel Evaluation Result_template';
 const FILENAME_COMPANY_MEMBERS = 'List member';
 
+function readSSFile_COMPANY_MEMBERS(fileCompanyMember) {
+  return new Promise((resolve, reject) => {
+    gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: fileCompanyMember.id,
+      range: 'Sheet1!A2:G200',
+    }).then(response => {
+      const staffList = [];
+      const rows = response.result.values;
+      for (const row of rows) {
+        const rowId = trim(row[0]);
+        const staff = {};
+        staff.name = trim(row[1]);
+        staff.position = trim(row[2]);
+        staff.grade = trim(row[3]);
+        staff.startDate = trim(row[4]);
+        staff.email = trim(row[5]);
+        staff.team = trim(row[6]);
+        if (staff.name) {
+          staffList.push(staff);
+        }
+      }
+      resolve(staffList);
+    }, errorResponse => {
+      reject(new Error(errorResponse.result.error.message));
+    });
+  });
+}
+function trim(str) {
+  if (str && (typeof str === 'string')) {
+    return str.trim();
+  } else {
+    return str;
+  }
+}
+
 /**@param {DriveFileInfo} mainFolder*/
 async function readMainFolder(mainFolder) {
   const mainFolderId = mainFolder.id;
@@ -36,18 +71,21 @@ async function readMainFolder(mainFolder) {
   const fileCompanyMember
     = (await findFiles(`"${inputFolder.id}" in parents and name = "${FILENAME_COMPANY_MEMBERS}"`))[0];
 
-  const noop = 0;
-
   // Reset output folder.
   if (outputFolderFound) {
     await deleteFileOrFolder(outputFolderFound.id);
   }
   const outputFolder = await createFolder(OUTPUT_FOLDER_NAME, mainFolderId);
 
+  const staffList = await readSSFile_COMPANY_MEMBERS(fileCompanyMember);
+  console.log(staffList);
+
+  const noop = 0;
 }
 
 function createFolder(folderName, parentFolderId) {
   return new Promise((resolve, reject) => {
+    /*
     const fileMetadata = {
       name: folderName,
       mimeType: 'application/vnd.google-apps.folder',
@@ -62,6 +100,28 @@ function createFolder(folderName, parentFolderId) {
       } else {
         resolve(file);
       }
+    });
+    */
+
+    /*const data = {};
+    data.title = 'TODO';
+    data.parents = [{id: parentFolderId}];
+    data.mimeType = "application/vnd.google-apps.folder";
+    gapi.client.drive.files.insert({resource: data}).execute(function(response){
+      console.log(response);
+    });*/
+
+    gapi.client.request({
+      'path': 'https://www.googleapis.com/drive/v3/files/',
+      'method': 'POST',
+      'body': {
+        "name": folderName,
+        "mimeType": "application/vnd.google-apps.folder",
+        "parents": [parentFolderId]
+      }
+    }).then(function(response) {
+      console.log(response);
+      resolve(response.result);
     });
   });
 }
