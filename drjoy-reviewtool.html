@@ -23,6 +23,24 @@ const FILENAME_PERSONEL_RESPONSE = 'Response list';
 const FILENAME_REVIEWREPORT_TEMPLATE = 'Personnel Evaluation Result_template';
 const FILENAME_COMPANY_MEMBERS = 'List member';
 
+function findFirstPersonelResponseByEmail(targetEmail, totalPersonelResponse) {
+  const personelResponseList = [];
+  for (const gradeCode in totalPersonelResponse) {
+    if (totalPersonelResponse.hasOwnProperty(gradeCode)) {
+      const tempPersonelResponseList = totalPersonelResponse[gradeCode];
+      for (const personelResponse of tempPersonelResponseList) {
+        if (personelResponse.email === targetEmail) {
+          personelResponseList.push(personelResponse);
+        }
+      }
+    }
+  }
+  if (personelResponseList.length > 1) {
+    console.warn(`[WARN] Duplicate email exist in totalPersonelResponse! Email:${targetEmail}`);
+  }
+  return personelResponseList[0];
+}
+
 function readSSFile_PERSONEL_RESPONSE(filePersonelResponse) {
   return new Promise(async (totalResolve, totalReject) => {
     try {
@@ -147,53 +165,63 @@ async function readMainFolder(mainFolder) {
 
   const staffList = await readSSFile_COMPANY_MEMBERS(fileCompanyMember);
   console.log(staffList);
-
   const teams = {};
   for (const staff of staffList) {
-    teams[staff.team] = true;
+    if (!teams[staff.team]) {
+      teams[staff.team] = {
+        staffList: [],
+      }
+    }
+    teams[staff.team].staffList.push(staff);
   }
   for (const teamCodeName in teams) {
     if (teamCodeName && teams.hasOwnProperty(teamCodeName)) {
-      teams[teamCodeName] = {
-        folder: await createFolder(teamCodeName, outputFolder.id)
-      };
+      teams[teamCodeName].folder = await createFolder(teamCodeName, outputFolder.id);
     }
   }
 
   const totalPersonelResponse = await readSSFile_PERSONEL_RESPONSE(filePersonelResponse);
   console.log(totalPersonelResponse);
 
+  for (const teamCodeName in teams) {
+    if (teams.hasOwnProperty(teamCodeName)) {
+      const team = teams[teamCodeName];
+      const teamFolder= team.folder;
+      const teamStaffList = team.staffList;
+      if (!teamFolder || !teamStaffList) {
+        console.warn(`Invalid team ${team}`);
+      }
+      for (const staff of teamStaffList) {
+        const staffPersonelResponse = findFirstPersonelResponseByEmail(staff.email);
+        const copiedFile = await copyFileToFolderById(fileReviewReportTemplate.id, teamFolder.id, {
+          name: staff.name
+        });
+        console.log(copiedFile);
+      }
+    }
+  }
+
   const noop = 0;
+}
+
+function copyFileToFolderById(fileId, folderId, option) {
+  return new Promise((resolve, reject) => {
+    gapi.client.drive.files.copy({
+      fileId: fileId,
+      resource: {
+        name: option.name,
+        parents: [folderId],
+      }
+    }).then(response => {
+      resolve(response.result.files);
+    }, err => {
+      reject(err);
+    });
+  })
 }
 
 function createFolder(folderName, parentFolderId) {
   return new Promise((resolve, reject) => {
-    /*
-    const fileMetadata = {
-      name: folderName,
-      mimeType: 'application/vnd.google-apps.folder',
-      parents: [parentFolderId],
-    };
-    gapi.client.drive.files.create({
-      resource: fileMetadata,
-      //fields: 'id'
-    }, (err, file) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(file);
-      }
-    });
-    */
-
-    /*const data = {};
-    data.title = 'TODO';
-    data.parents = [{id: parentFolderId}];
-    data.mimeType = "application/vnd.google-apps.folder";
-    gapi.client.drive.files.insert({resource: data}).execute(function(response){
-      console.log(response);
-    });*/
-
     gapi.client.request({
       'path': 'https://www.googleapis.com/drive/v3/files/',
       'method': 'POST',
