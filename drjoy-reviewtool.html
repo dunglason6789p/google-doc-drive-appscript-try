@@ -23,6 +23,74 @@ const FILENAME_PERSONEL_RESPONSE = 'Response list';
 const FILENAME_REVIEWREPORT_TEMPLATE = 'Personnel Evaluation Result_template';
 const FILENAME_COMPANY_MEMBERS = 'List member';
 
+function readSSFile_PERSONEL_RESPONSE(filePersonelResponse) {
+  return new Promise(async (totalResolve, totalReject) => {
+    try {
+      const totalPersonelResponse = {
+        P1: true,
+        P2: true,
+        P3: true,
+        P4: true,
+        M1: true,
+        M2: true,
+      };
+      for (const gradeCode in totalPersonelResponse) {
+        if (totalPersonelResponse.hasOwnProperty(gradeCode)) {
+          const personelResponseList = await new Promise((resolve, reject) => {
+            gapi.client.sheets.spreadsheets.values.get({
+              spreadsheetId: filePersonelResponse.id,
+              range: `${gradeCode}!A2:O200`,
+            }).then(response => {
+              const personelResponseList = [];
+              const rows = response.result.values;
+              for (const row of rows) {
+                const personelResponse = {};
+                personelResponse.timeStamp = trim(row[0]);
+                personelResponse.email = trim(row[1]);
+                personelResponse.productivity = {
+                  text: trim(row[4]),
+                  score: trim(row[3]),
+                };
+                personelResponse.quality = {
+                  text: trim(row[6]),
+                  score: trim(row[5]),
+                };
+                personelResponse.deadline = {
+                  text: trim(row[8]),
+                  score: trim(row[7]),
+                };
+                personelResponse.kaizen = {
+                  text: trim(row[10]),
+                  score: trim(row[9]),
+                };
+                personelResponse.teamwork = {
+                  text: trim(row[12]),
+                  score: trim(row[11]),
+                };
+                personelResponse.rule = {
+                  text: trim(row[14]),
+                  score: trim(row[13]),
+                };
+                if (personelResponse.email) {
+                  personelResponseList.push(personelResponse);
+                }
+              }
+              resolve(personelResponseList);
+            }, errorResponse => {
+              reject(errorResponse);
+            });
+          });
+          console.log(personelResponseList);
+          totalPersonelResponse[gradeCode] = personelResponseList;
+        }
+      }
+      totalResolve(totalPersonelResponse);
+    } catch (e) {
+      totalReject(e);
+    }
+  });
+}
+
 function readSSFile_COMPANY_MEMBERS(fileCompanyMember) {
   return new Promise((resolve, reject) => {
     gapi.client.sheets.spreadsheets.values.get({
@@ -79,6 +147,21 @@ async function readMainFolder(mainFolder) {
 
   const staffList = await readSSFile_COMPANY_MEMBERS(fileCompanyMember);
   console.log(staffList);
+
+  const teams = {};
+  for (const staff of staffList) {
+    teams[staff.team] = true;
+  }
+  for (const teamCodeName in teams) {
+    if (teamCodeName && teams.hasOwnProperty(teamCodeName)) {
+      teams[teamCodeName] = {
+        folder: await createFolder(teamCodeName, outputFolder.id)
+      };
+    }
+  }
+
+  const totalPersonelResponse = await readSSFile_PERSONEL_RESPONSE(filePersonelResponse);
+  console.log(totalPersonelResponse);
 
   const noop = 0;
 }
