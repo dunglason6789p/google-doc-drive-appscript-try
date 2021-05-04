@@ -192,16 +192,88 @@ async function readMainFolder(mainFolder) {
         console.warn(`Invalid team ${team}`);
       }
       for (const staff of teamStaffList) {
-        const staffPersonelResponse = findFirstPersonelResponseByEmail(staff.email);
+        const staffPersonelResponse = findFirstPersonelResponseByEmail(staff.email, totalPersonelResponse);
+        if (!staffPersonelResponse) {
+          console.warn(`[WARN] Not found staffPersonelResponse for email ${staff.email}`);
+          break;
+        }
         const copiedFile = await copyFileToFolderById(fileReviewReportTemplate.id, teamFolder.id, {
           name: staff.name
         });
         console.log(copiedFile);
+        const xxx = await writeToSpreadSheet(copiedFile.id, staffPersonelResponse);
+        console.log(xxx);
       }
     }
   }
 
   const noop = 0;
+}
+
+function writeToSpreadSheet(fileId, personelResponse) {
+  return new Promise((resolve, reject) => {
+    /*gapi.client.sheets.spreadsheets.values.update({
+      spreadsheetId: fileId,
+      range: range,
+      valueInputOption: valueInputOption,
+      resource: {
+        values: [
+          [''],
+          [''],
+          [''],
+        ]
+      }
+    }).then((response) => {
+      var result = response.result;
+      console.log(`${result.updatedCells} cells updated.`);
+    });*/
+    const data = [
+      {
+        range: 'B11:B13',
+        values: [
+          [personelResponse.productivity.score],
+          [personelResponse.quality.score],
+          [personelResponse.deadline.score],
+        ]
+      },
+      {
+        range: 'C11:C13',
+        values: [
+          [personelResponse.productivity.text],
+          [personelResponse.quality.text],
+          [personelResponse.deadline.text],
+        ]
+      },
+      {
+        range: 'B15:B17',
+        values: [
+          [personelResponse.kaizen.score],
+          [personelResponse.teamwork.score],
+          [personelResponse.rule.score],
+        ]
+      },
+      {
+        range: 'C15:C17',
+        values: [
+          [personelResponse.kaizen.text],
+          [personelResponse.teamwork.text],
+          [personelResponse.rule.text],
+        ]
+      },
+    ];
+    const body = {
+      data: data,
+      valueInputOption: 'RAW'
+    };
+    gapi.client.sheets.spreadsheets.values.batchUpdate({
+       spreadsheetId: fileId,
+       resource: body
+    }).then(response => {
+      resolve(response);
+    }, err => {
+      reject(err);
+    });
+  });
 }
 
 function copyFileToFolderById(fileId, folderId, option) {
@@ -213,7 +285,7 @@ function copyFileToFolderById(fileId, folderId, option) {
         parents: [folderId],
       }
     }).then(response => {
-      resolve(response.result.files);
+      resolve(response.result);
     }, err => {
       reject(err);
     });
